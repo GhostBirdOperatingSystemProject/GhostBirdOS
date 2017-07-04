@@ -1,20 +1,21 @@
 /**
- * Date:2017/6/8 2:21
+ * Date:2017/7/1 13:33
  * Author:HuWenjie<1@hwj.me>
  * Ghost Bird File System Reader
- * configuration
+ * IO - struct io_func
  * 
  * BSD 2-Clause License
  * 
  * Copyright (c) 2017, Ghost Bird Operating System Project Developers.
  * All rights reserved.
  **/
- 
-#ifndef CONFIG_H_
-#define CONFIG_H_
 
-// Here are some switch which can enable\disable every version of GFS.
+#ifndef FUNC_H_
+#define FUNC_H_
 
-#define CONFIG_ENABLE_GFS01
+struct io_func
+{
+	
+};
 
 #endif

@@ -40,14 +40,7 @@ export gfr
 
 
 
-.PHONY:gfr
-.PHONY:loader
-.PHONY:$(image)
-.PHONY:help
-.PHONY:clean
-.PHONY:run
-.PHONY:install
-.PHONY:all
+.PHONY: gfr loader help clean run install all
 
 gfr:
 	cd tools/gfr && make all

@@ -1,20 +1,20 @@
 /**
- * Date:2017/6/8 2:21
+ * Date:2017/6/30 22:13
  * Author:HuWenjie<1@hwj.me>
  * Ghost Bird File System Reader
- * configuration
+ * BF - init
  * 
  * BSD 2-Clause License
  * 
  * Copyright (c) 2017, Ghost Bird Operating System Project Developers.
  * All rights reserved.
  **/
- 
-#ifndef CONFIG_H_
-#define CONFIG_H_
 
-// Here are some switch which can enable\disable every version of GFS.
+#include <stdio.h>
+#include "../include/return.h"
+#include "../include/io.h"
 
-#define CONFIG_ENABLE_GFS01
-
-#endif
+int init(void)
+{
+	return RET_FAIL;
+}

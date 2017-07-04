@@ -15,5 +15,7 @@
 
 #define COPYRIGHT "Copyright (c) 2017, Ghost Bird Operating System Project Developers. All rights reserved."
 #define SOFTWARE "Ghost Bird File System Reader"
+#define VERSION "0.1"
+#define SUBVERSION "a"
 
 #endif

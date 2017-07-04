@@ -1,8 +1,8 @@
 /**
- * Date:2017/6/8 2:21
+ * Date:2017/6/30 22:01
  * Author:HuWenjie<1@hwj.me>
  * Ghost Bird File System Reader
- * configuration
+ * File System Definition
  * 
  * BSD 2-Clause License
  * 
@@ -10,11 +10,9 @@
  * All rights reserved.
  **/
  
-#ifndef CONFIG_H_
-#define CONFIG_H_
+#ifndef FS_H_
+#define FS_H_
 
-// Here are some switch which can enable\disable every version of GFS.
 
-#define CONFIG_ENABLE_GFS01
 
 #endif

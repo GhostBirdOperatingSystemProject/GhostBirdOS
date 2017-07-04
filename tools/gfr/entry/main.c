@@ -34,9 +34,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "include/info.h"
-#include "include/config.h"
-#include "include/return.h"
+#include "../include/config.h"
+#include "../include/return.h"
+#include "../include/info.h"
 
 #define SECTOR_SIZE 512
 
@@ -79,6 +79,7 @@ int arg_ws(void)
 	int LBA;
 	int src_len;
 	int dst_len;
+	int i;
 	FILE *src_file = NULL;
 	FILE *dst_file = NULL;
 	
@@ -138,7 +139,7 @@ int arg_ws(void)
 	fseek(src_file, 0, SEEK_SET);
 	fseek(dst_file, (LBA - 1) * SECTOR_SIZE, SEEK_SET);
 	
-	for (int i = 0; i < src_len; i ++)
+	for (i = 0; i < src_len; i ++)
 	{
 		putc(getc(src_file), dst_file);
 	}
@@ -198,9 +199,10 @@ void arg_sh(void)
 void arg_v(void)
 {
 	// Show some necessary info
-	printf(SOFTWARE"\n");
+	printf(SOFTWARE " " VERSION SUBVERSION "\n");
 	printf(COPYRIGHT"\n");
-	
+	printf("Support image format:\n");
+	printf("Support File System:\n");
 	return;
 }
 
@@ -245,4 +247,7 @@ write:
 read:
 	if (argv[1][2] == 's')
 		return arg_rs();
+	
+	return RET_FAIL;
 }
+

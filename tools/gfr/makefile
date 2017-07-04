@@ -8,11 +8,39 @@
 # Copyright (c) 2017, Ghost Bird Operating System Project Developers.
 # All rights reserved.
 
-LDFLAGS := -Wall -O2
-CFLAGS := -I C:/MinGW/include
+CC			:= gcc
+DIRS		:= entry fs bf io
+CFILES		:= $(foreach dir,$(DIRS),$(wildcard $(dir)/*.c))
+OBJ			:= $(CFILES:.c=.o)
 
-all:
-	$(CC) gfr.c -o gfr.exe $(LDFLAGS) $(CFLAGS)
+EXECUTE := gfr.exe
+CFLAGS := -Wall -O2
+
+ifneq ($(MAKECMDGOALS), clean)
+-include $(CFILES:.c=.d)
+endif
+
+.PHONY: $(EXECUTE)
+
+$(EXECUTE):all
+	$(CC) -o $(EXECUTE) $(OBJ)
+
+all:$(OBJ)
+
+%.d:%.c
+	gcc -M $(CFLAGS) $< > $@
+	@sed -i 's:$(notdir $(<:.c=.o)):$@ $(<:.c=.o):' $@
+
+# %.d:%.c
+# @echo $@ $(dir $<) > $@
+# @gcc -M $(CFLAGS) $< -o $@
+# $(shell gcc -M $(CFLAGS) $<) >> $@
+	
+
+%.o:%.c
+	gcc -c $(CFLAGS) $< -o $@
 	
 clean:
-	$(RM) gfr.exe
+	$(RM) $(EXECUTE)
+	$(RM) $(CFILES:.c=.d)
+	$(RM) $(OBJ)
