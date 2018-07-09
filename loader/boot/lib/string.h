@@ -33,6 +33,16 @@ char *strncpy(char *dest, const char *src, unsigned long count);
 unsigned long strlcpy(char *dest, const char *src, unsigned long size);
 int strncmp(const char *cs, const char *ct, unsigned long count);
 unsigned long strlen(const char *s);
+
+/**
+ * strnlen - Find the length of a length-limited string
+ * @s: The string to be sized
+ * @count: The maximum number of bytes to search
+ */
+unsigned long strnlen(const char *s, unsigned long count);
+
 unsigned long strspn(const char *s, const char *accept);
+
+char *strnstr(const char *big, const char *little, unsigned long len);
 
 #endif

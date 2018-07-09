@@ -10,7 +10,7 @@ MBR of Explorer kernel loader program.
 
 本目录下存在的文件或文件夹：
 \Makefile：提供MBR的编译、调试描述。
-\MBR.basm：主引导程序的汇编源代码文件。
+\MBR.asm：主引导程序的汇编源代码文件。
 \README：本文件。用于描述、说明MBR。
 
 设计思路及实现原理：
@@ -19,9 +19,3 @@ MBR of Explorer kernel loader program.
 盘操作中断将磁盘的第2~128扇区加载到MBR位置之后，
 即内存0x10200处，最后将控制权交给保留扇区引导记
 录，全程在有必要的地方进行信息输出。
-
-注意事项:
-MBR.basm而不是MBR.asm，通过这种方法在本项目的其他
-Makefile中区分生成二进制文件的汇编程序和生成ELF格
-式的汇编程序，后者与其他生成同样格式的汇编文件、C及
-C++文件链接。

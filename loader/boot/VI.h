@@ -1,6 +1,6 @@
 /**
  * Copyright2013-2015 by Explorer OS Developers. All rights reserved.
- * made by Rise<amazingrise@163.com>
+ * made by Rize<heseri@GhostBirdOS.org>
  * Explorer loader VI Header
  */
  
@@ -14,8 +14,9 @@
 #define		VI_min_height
 
 /**页号*/
-#define		VI_page_output 0
-#define		VI_page_select 1
+#define		VI_page_init 0
+#define		VI_page_output 1
+#define		VI_page_select 2
 
 /**回调函数的参数定义*/
 #define		VI_DO_PRES 1

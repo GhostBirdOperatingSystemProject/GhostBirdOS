@@ -1,7 +1,6 @@
 /**
  * Copyright 2013-2015 by Explorer Developers.
- * Hu Wenjie<1@hwj.me>,Rise<amazingrise@126.com>
- * (Originated from Linux)
+ * Hu Wenjie<1@hwj.me>,Linus Torvalds,Rose<roselyu@163.com>
  * Explorer Standard Font
  * boot/font.c
  * version:Alpha
@@ -2316,7 +2315,7 @@ unsigned char font[FONTDATAMAX] = {
 	0x00, /* 00000000 */
 	0x00, /* 00000000 */
 
-  /* 128 0x80 '€' */
+	/* 128 0x80 '€' */
 	0x00, /* 00000000 */
 	0x00, /* 00000000 */
 	0x3c, /* 00111100 */
@@ -4602,7 +4601,7 @@ unsigned char font[FONTDATAMAX] = {
 	0x00, /* 00000000 */
 	0x00, /* 00000000 */
 
-  /* 255 0xff '' */
+	/* 255 0xff '' */
 	0x00, /* 00000000 */
 	0x00, /* 00000000 */
 	0x00, /* 00000000 */

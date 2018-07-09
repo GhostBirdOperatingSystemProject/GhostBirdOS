@@ -5,27 +5,8 @@
 #ifndef HEAD_H_
 #define HEAD_H_
 
-
-// 图形信息
-struct Video_Info
-{
-	unsigned char *vram;
-	unsigned long xres, yres;
-	unsigned long vram_length;
-	unsigned long bit_per_pixel;
-};
-
-extern struct Video_Info Video_Info;
-
-/**绘制像素函数*/
-void (*putpixel)(unsigned int x, unsigned int y, unsigned int color);
-
-/**获取像素函数*/
-unsigned int (*getpixel)(unsigned int x, unsigned int y);
-
-#define FONTDATAMAX 4096
-extern unsigned char font[FONTDATAMAX];
-
+/**重置函数*/
+void reset(void);
 
 /**停机函数
  * 该函数执行实体是汇编指令hlt

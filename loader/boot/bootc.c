@@ -8,158 +8,14 @@
 #include "head.h"
 #include "MMU.h"
 #include "lib/mem.h"
+#include "lib/graphics.h"
 #include "storage.h"
 #include "fs.h"
 #include "VI.h"
+#include "script.h"
 
 // A pointer that push argument, eip and jump to the start of kernel
 void (*kernel_start)(const struct boot_info *boot_info) = KERNEL_ADDR;
-
-// 视频模式信息
-struct Video_Info Video_Info;
-
-/**显示像素函数*/
-void (*putpixel)(unsigned int x, unsigned int y, unsigned int color);
-
-/**获取像素函数*/
-unsigned int (*getpixel)(unsigned int x, unsigned int y);
-
-/**24位色彩模式获取像素函数*/
-unsigned int getpixel24(unsigned int x, unsigned int y)
-{
-	unsigned int i;
-	
-	/**先判断该像素是否在屏幕上*/
-	if (x < Video_Info.xres & y < Video_Info.yres)
-	{
-		i = ((y * Video_Info.xres) + x) * 3;
-		return (Video_Info.vram[i] + (Video_Info.vram[i+1] << 8) + (Video_Info.vram[i+2] << 16));
-	}
-}
-
-/**32位色彩模式获取像素函数*/
-unsigned int getpixel32(unsigned int x, unsigned int y)
-{
-	/**先判断该像素是否在屏幕上*/
-	if (x < Video_Info.xres & y < Video_Info.yres)
-	{
-		return ((unsigned int *)Video_Info.vram)[(y * Video_Info.xres) + x];
-	}
-}
-
-/**24位色彩模式绘制像素函数*/
-void putpixel24(unsigned int x, unsigned int y, unsigned int color)
-{
-	int i;
-	unsigned char *vram = Video_Info.vram;
-	
-	/**先判断该像素是否在屏幕上*/
-	if ((x < Video_Info.xres) & (y < Video_Info.yres))
-	{
-		i = ((y * Video_Info.xres) + x)*3;
-		vram[i] = color;
-		vram[i+1] = color >> 8;
-		vram[i+2] = color >> 16;
-	}
-}
-
-/**32位色彩模式绘制像素函数*/
-void putpixel32(unsigned int x, unsigned int y, unsigned int color)
-{
-	/**先判断该像素是否在屏幕上*/
-	if ((x < Video_Info.xres) & (y < Video_Info.yres))
-	{
-		((unsigned int *)Video_Info.vram)[(y * Video_Info.xres) + x] = color;
-	}
-}
-
-/*在屏幕指定地方画方块*/
-void rectangle(unsigned long x, unsigned long y, unsigned long height, unsigned long width, unsigned int color)
-{
-	unsigned long m, n;
-	for (n = 0; n != width; n ++)
-	{
-		for (m = 0; m != height; m ++)
-		{
-			putpixel(x + m, y + n, color);
-		}
-	}
-}
-
-// 绘字函数
-void draw_font(unsigned long x, unsigned long y, unsigned int color, unsigned char ascii)
-{
-	unsigned long i, font_offset;/*字库偏移量*/
-	unsigned char d;
-	font_offset = ascii * 16;
-	for (i = 0; i < 16; i++)
-	{
-		d = font[font_offset + i];
-		if ((d & 0x80) != 0) { putpixel(x, y + i, color); }
-		if ((d & 0x40) != 0) { putpixel(x + 1, y + i, color); }
-		if ((d & 0x20) != 0) { putpixel(x + 2, y + i, color); }
-		if ((d & 0x10) != 0) { putpixel(x + 3, y + i, color); }
-		if ((d & 0x08) != 0) { putpixel(x + 4, y + i, color); }
-		if ((d & 0x04) != 0) { putpixel(x + 5, y + i, color); }
-		if ((d & 0x02) != 0) { putpixel(x + 6, y + i, color); }
-		if ((d & 0x01) != 0) { putpixel(x + 7, y + i, color); }
-	}
-}
-
-/**屏幕上指定位置输出一行字符串*/
-void outtextxy(unsigned long x, unsigned long y, unsigned int color, unsigned char *string)
-{
-	unsigned long point;
-	for (point = 0; string[point] != 0x00; point ++)
-	{
-		draw_font(x, y, color, string[point]);
-		x += 8;
-	}
-}
-
-// 绘线函数
-void line(unsigned long x0, unsigned long y0, unsigned long x1, unsigned long y1, unsigned int color)
-{
-	int dx,dy,n,k,i,f;
-	int x,y;
-	dx=abs(x1-x0);
-	dy=abs(y1-y0);
-	n=dx+dy;
-	
-	/**根据x1和x0的关系，选择合适的k运算方法*/
-	if (x1 == x0)
-	{
-		k=2;
-		x=x0;
-		y=y0;
-	}else if(x1>=x0)
-	{
-		k=y1>=y0?1:4;
-		x=x0;
-		y=y0;
-	}else{
-		k=y1>=y0?2:4;
-		x=x0;
-		y=y0;
-	}
-
-	for(i=0,f=0;i<n;i++)
-		if(f>=0)
-		switch(k)
-		{
-			case 1:putpixel(x++, y, color);f-=dy;break;
-			case 2:putpixel(x, y++, color);f-=dx;break;
-			case 3:putpixel(x--, y, color);f-=dy;break;
-			case 4:putpixel(x, y--, color);f-=dx;break;
-		}else
-		switch(k)
-		{
-			case 1:putpixel(x, y++, color);f+=dx;break;
-			case 2:putpixel(x--, y, color);f+=dy;break;
-			case 3:putpixel(x, y--, color);f+=dx;break;
-			case 4:putpixel(x++, y, color);f+=dy;break;
-		}
-}
 
 /**重置函数*/
 void reset(void)
@@ -179,55 +35,6 @@ void stillhalt(void)
 	loop:
 		io_hlt();
 	goto loop;
-}
-
-/**调试函数，用于显示各种内存内容*/
-void debug(void * address, unsigned long size)
-{
-	unsigned char count;
-	unsigned char *data_ptr = address;
-	
-	/**如果size大小不对，则直接输出信息后直接返回*/
-	if (size == 0)
-	{
-		printk("debug invalid.\n");
-		return;
-	}
-	
-	/**如果size不是16字节对齐，就按16字节对齐*/
-	if ((size % 16) != 0)
-	{
-		size = size & 0xfffffff0;
-		size + 16;
-	}
-	/**绘制表头*/
-	printk ("Memory %#x to %#x:\n", address, address + size);
-	printk("Offset(h)  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n");
-	/**输出结果*/
-	for (; size != 0;)
-	{
-		printk("%08X   %02X %02X %02X %02X ", (unsigned long)data_ptr & 0xfffffff0, *(data_ptr), *(data_ptr + 1), *(data_ptr + 2), *(data_ptr + 3));
-		printk("%02X %02X %02X %02X ", *(data_ptr + 4), *(data_ptr + 5), *(data_ptr + 6), *(data_ptr + 7));
-		printk("%02X %02X %02X %02X ", *(data_ptr + 8), *(data_ptr + 9), *(data_ptr + 10), *(data_ptr + 11));
-		printk("%02X %02X %02X %02X  ", *(data_ptr + 12), *(data_ptr + 13), *(data_ptr + 14), *(data_ptr + 15));
-		
-		for (count = 0; count < 16; count++)
-		{
-			if (*(data_ptr + count) == 0)
-			{
-				put_char(46);
-			}else if (*(data_ptr + count) == 0x0A){
-				put_char(46);
-			}else{
-				put_char(*(data_ptr + count));
-			}
-		}
-		
-		printk("\n");
-		
-		size -= 16;
-		data_ptr += 16;
-	}
 }
 
 extern int_0x20, int_0x21, int_0x22, int_0x23;
@@ -464,7 +271,7 @@ int callback(int n, int type)
 }
 
 /**configure文件储存内存指针*/
-static void *config_buf;
+static char *config_buf;
 /**保留扇区引导程序的主函数*/
 void BOOT_main(const struct boot_info *boot_info)
 {
@@ -482,22 +289,9 @@ void BOOT_main(const struct boot_info *boot_info)
 		reset();		/**系统重置*/
 	}
 	/**初始化图形模式*/
-	Video_Info.xres = boot_info->ModeInfoBlock.XResolution;
-	Video_Info.yres = boot_info->ModeInfoBlock.YResolution;
-	Video_Info.bit_per_pixel = boot_info->ModeInfoBlock.BitsPerPixel;
-	Video_Info.vram_length = (((Video_Info.xres * Video_Info.yres) * (Video_Info.bit_per_pixel / 8)) & 0xfffff000) + 0x1000;
-	Video_Info.vram = (unsigned char*)boot_info->ModeInfoBlock.PhysBasePtr;
-	
-	/**根据BPP判断所需要的相应显示像素函数*/
-	if (Video_Info.bit_per_pixel == 24)
-	{
-		putpixel = putpixel24;
-		getpixel = getpixel24;
-	}else if (Video_Info.bit_per_pixel == 32)
-	{
-		putpixel = putpixel32;
-		getpixel = getpixel32;
-	}
+	init_graphics
+		(boot_info->ModeInfoBlock.XResolution , boot_info->ModeInfoBlock.YResolution,
+		 boot_info->ModeInfoBlock.BitsPerPixel, boot_info->ModeInfoBlock.PhysBasePtr);
 	
 	/**初始化可视化界面*/
 	init_VI();
@@ -513,7 +307,7 @@ void BOOT_main(const struct boot_info *boot_info)
 	
 	/**初始化储存器管理*/
 	init_storage();
-	
+
 	/**检测活动分区的数量*/
 	printk("Active storage partition:%d\n", storage_active_partition());
 	
@@ -521,9 +315,36 @@ void BOOT_main(const struct boot_info *boot_info)
 	init_FS();
 	
 	/**分配放置configure的内存*/
+	struct file_info loaderconfig_file_info;
+	loaderconfig_file_info = read_file_info(SD_IDE_00, 0, CONFIG_FILENAME);
+	if ((loaderconfig_file_info.size + 1) > CONFIG_MAX)
+		error(ERR_CONFIG_OVERSIZE, CONFIG_FILENAME " oversized.");
+
 	config_buf = bmalloc(CONFIG_MAX);
 	if (config_buf == NULL) error(ERR_NO_MEM_FOR_CONFIG, "No memory for loader's configure file.");
 	
+	read_file(SD_IDE_00, 1, CONFIG_FILENAME, config_buf, 0);
+	
+	//config_buf[loaderconfig_file_info.size] = 0;
+	
+	//printk("%.*s\n", 50, config_buf);
+	
+	//printk(strnstr(config_buf, "Hu", 50));
+	struct script_node config_node, list_node, item_node,
+	name_node, description_node, location_node, address_node;
+	
+	config_node = script_init(config_buf, loaderconfig_file_info.size);
+	
+	list_node = script_child(config_node, "list");
+	
+	item_node = script_child(list_node, "item");
+	name_node = script_child(item_node, "name");
+	description_node = script_child(item_node, "description");
+	location_node = script_child(item_node, "location");
+	address_node = script_child(item_node, "address");
+	
+
+
 	// Example
 	printak("<0xaaaaff>Hello, This is Explorer loader!\n</>");
 	select_register(0, callback, "Ghost Bird OS 0.02(Explorer kernel)");
@@ -531,7 +352,10 @@ void BOOT_main(const struct boot_info *boot_info)
 	select_register(2, callback, "DolphinOS");
 	
 	VI_active(VI_page_select);
-
+	
+	
+	printk("CONFIG.LDR size = %dBytes.\n", loaderconfig_file_info.size);
+	io_hlt();
 	io_hlt();
 	fin:goto fin;
 	/**加载内核*/

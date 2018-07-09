@@ -11,13 +11,15 @@
 #include "lib/mem.h"
 #include "lib/stdlib.h"
 #include "MMU.h"
+#include "VI.h"
 #include "storage.h"
+#include "../problem.h"
 
 struct PBR
 {
 	/*PBR直接提供*/
-	unsigned char OEM[8];				/*OEM name*/
-	unsigned char cluster_size;			/*How many sectors per cluster*/
+	unsigned char OEM[8];			/*OEM name*/
+	unsigned char cluster_size;		/*How many sectors per cluster*/
 	short reserve;						/*The number of reserved sectors*/
 	unsigned char FAT_num;				/*The number of FAT*/
 	short root_max_num;					/*根目录最大数量*/
@@ -76,7 +78,7 @@ void init_FS(void)
 {
 	char *point;
 	point = bmalloc(512);
-	if (point == NULL) error("Initialize Memory Error!");
+	if (point == NULL) error(ERR_NO_MEM_FOR_FS, "Initialize Memory Error!");
 	storage_read(0, point, SD[0].SP[0].start_LBA, 1);
 	
 	/*拷贝直接得到的数据*/
@@ -94,7 +96,7 @@ void init_FS(void)
 	/*算出间接提供的数据*/
 	PBR1.FAT_start = SD[0].SP[0].start_LBA + PBR1.reserve;
 	PBR1.data_start = PBR1.FAT_start + (PBR1.FAT_num * PBR1.FAT_size);
-	
+	printk("PBR1.FAT_num = %d\n", PBR1.FAT_num);
 	/*判断取哪个值*/
 	if (PBR1.total_sector_num_16 == 0)
 	{
@@ -123,11 +125,10 @@ struct file_info fat32_read_file(unsigned long storage_number, unsigned long par
 {
 	file_info read_file;
 	read_file = fat32_read_file_info(name);
-	//printk("read_file.start = 0x%X",read_file.start);
 	load_data(addr, read_file.cluster);
 }
 
-/*made by 迷彩红星<1@ghostbirdos.org>
+/*made by HuWenJie<1@hwj.me>
  *读取文件数据函数
  *入口：(路径)文件名
  *NOTE:目前获取元数据的函数仅仅支持根目录下的大写文件(文件名8个字或者以内，不支持小写和空格)，一定要有后缀名(后缀名3个字或以内)！
@@ -137,7 +138,7 @@ file_info fat32_read_file_info(const char *name)
 	unsigned char *root_point, tar_buffer[13], src_buffer[13] = {0,0,0,0,0,0,0,0,0,0,0,0,0};/*源buffer初始化*/;
 	unsigned int table_point, offset_point, sector, clu, buffer_point;
 	file_info s;
-	/*处理文件路径：使nasm指向第一个不为"\"或者"/"的字符*/
+	/*处理文件路径：使name指向第一个不为"\"或者"/"的字符*/
 	if (*name == 92 | *name == 47)/*"\"字符ASCII是92*/
 	{
 		name += 1;
@@ -147,15 +148,17 @@ file_info fat32_read_file_info(const char *name)
 	{
 		src_buffer[offset_point] = name[offset_point];
 	}
+	
 	/*读取根目录*/
 	root_point = (unsigned char *) bmalloc(PBR1.cluster_size * 512);/*512unsigned char是一个标准磁盘扇区的大小，乘上每个簇包含扇区的数量得一个簇的大小*/
-	if (root_point == NULL) error("get file information is error!");
+	if (root_point == NULL) error(ERR_NO_MEM_FOR_FS, "get file information is error!");
 	for (clu = PBR1.root_start; (clu & 0x0FFFFFF0) != 0x0FFFFFF0;)
 	{
 		sector = clu_to_sector(clu);
-		read_disk(sector, (short*) root_point, PBR1.cluster_size);
+		storage_read(SD_IDE_00, root_point, sector, PBR1.cluster_size);
+
 		/*一簇的页目录表中逐个匹配*/
-		for (table_point = 0; table_point < (PBR1.cluster_size * 512); table_point += 32)		/*目录项每项32unsigned char*/
+		for (table_point = 0; table_point < (PBR1.cluster_size * 512); table_point += 32)/*目录项每项32unsigned char*/
 		{
 			unsigned char tar_buffer[]={0,0,0,0,0,0,0,0,0,0,0,0,0};/*buffer初始化*/
 			/*循环读入该表项表示的文件名*/
@@ -170,6 +173,7 @@ file_info fat32_read_file_info(const char *name)
 			{
 				tar_buffer[buffer_point + offset_point] = root_point[table_point + offset_point + 8];
 			}
+
 			/*判断该文件名是否是要寻找的文件名*/
 			for (offset_point = 0; (offset_point < 13) && src_buffer[offset_point] == tar_buffer[offset_point]; offset_point ++)
 			{
@@ -187,7 +191,7 @@ file_info fat32_read_file_info(const char *name)
 		}
 		clu = get_next_clu(clu);
 	}
-	printk("Not found file.");
+	error(ERR_NO_FILE, "Not found file.");
 	io_hlt();
 }
 
@@ -201,7 +205,8 @@ unsigned int get_next_clu(unsigned int clu)
 	unsigned int *point, next_clu;
 	point = (unsigned int *) bmalloc(PBR1.cluster_size * 512);
 	/*每个FAT表项4个字节，一个扇区可以装128个FAT表项*/
-	read_disk((PBR1.FAT_start + (clu / 128)), (unsigned short int*) point, 1);
+	storage_read(SD_IDE_00, (unsigned short int*) point, (PBR1.FAT_start + (clu / 128)), 1);
+
 	next_clu = point[clu % 128];
 	return next_clu;
 }
@@ -212,7 +217,7 @@ void load_data(void *buf, unsigned long clu)
 	for (; (clu & 0x0FFFFFF0) != 0x0FFFFFF0;)
 	{
 		sector = clu_to_sector(clu);
-		read_disk(sector, (unsigned short int*) buf, PBR1.cluster_size);
+		storage_read(SD_IDE_00, (unsigned short int*) buf, sector, PBR1.cluster_size);
 		buf += (PBR1.cluster_size * 512);		/*addr指向内存中下个扇区的首地址*/
 		clu = get_next_clu(clu);
 	}

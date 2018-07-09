@@ -1,13 +1,12 @@
 ![Home Page](docs/logo.png)
 # Ghost Bird Operating System Project #
 
-Copyright 2014-2018 Ghost Bird. All rights reserved.
+Copyright 2014-2017 Ghost Bird Operating System Project Developers. All rights reserved.
 
 A lightweight, multi-tasking graphical operating system, **JUST FOR FUN!**
 
-Former Ghostbird OS:(button is mistyped)
-![Old version](docs/old.png "Former Ghostbird OS:(button is mistyped)")
-
+![Old version](docs/old.png "An old version of Ghost Bird Operating System.")
+*An old version of Ghost Bird Operating System.*
 
 **NOTE:**All of the following mentioned Ghost Bird OS is the abbreviation of Ghost Bird Opreating System Project.
 

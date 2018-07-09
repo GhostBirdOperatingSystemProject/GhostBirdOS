@@ -179,8 +179,8 @@ void IDE_reg_cmd(char PS)
 	}
 	
 	/**写数据*/
-	io_out8(IDE_PRIMARY_WRITE_FEATURES + port_offset		, IDE_register[1]);
-	io_out8(IDE_PRIMARY_WRITE_SECCOUNT + port_offset		, IDE_register[2]);
+	//io_out8(IDE_PRIMARY_WRITE_FEATURES + port_offset		, IDE_register[1]);
+	io_out16(IDE_PRIMARY_WRITE_SECCOUNT + port_offset		, IDE_register[2]);
 	io_out8(IDE_PRIMARY_WRITE_LBA_0_7 + port_offset			, IDE_register[3]);
 	io_out8(IDE_PRIMARY_WRITE_LBA_8_15 + port_offset		, IDE_register[4]);
 	io_out8(IDE_PRIMARY_WRITE_LBA_16_23 + port_offset		, IDE_register[5]);
@@ -230,64 +230,10 @@ int IDE_write(unsigned long storage_number, const void *src, unsigned long LBA_a
 	
 }
 
-/**在ATA标准中，IDE命令共有30多个，其中有10个是通用型命令*/
-#define HD_CMD_READ		0x20			//读取扇区命令
-#define HD_CMD_WRITE	0x30			//写入扇区命令
-#define HD_CMD_CHECK	0x90			//磁盘诊断命令
-	
-/**操作扇区时允许的最多出错次数*/
-#define MAX_ERRORS	10
-
-/**AT硬盘控制器寄存器端口及作用*/
-/**读时*/
-#define HD_DATA			0x1f0
-#define HD_ERROR		0x1f1
-#define HD_NSECTOR		0x1f2
-#define HD_SECTOR		0x1f3
-#define HD_LCYL			0x1f4
-#define HD_HCYL			0x1f5
-#define HD_CURRENT		0x1f6
-#define HD_STATUS		0x1f7
-/**写时*/
-#define HD_PRECOMP		0x1f1
-#define HD_COMMAND		0x1f7
-
-void hdd_wait(void)
-{
-	/**等待次数计时*/
-	//unsigned long n;
-	for (; (io_in8(HD_STATUS) & 0x88) != 0x08;);				/**循环等待*/
-}
-
-void read_disk(unsigned long LBA, unsigned short *buffer, unsigned long number)
-{
-	unsigned long offset, i;
-	io_out16(HD_NSECTOR,number);								/**数量*/
-	io_out8(HD_SECTOR,(LBA & 0xff));							/**LBA地址7~0*/
-	io_out8(HD_LCYL,((LBA >> 8) & 0xff));						/**LBA地址15~8*/
-	io_out8(HD_HCYL,((LBA >> 16) & 0xff));						/**LBA地址23~16*/
-	io_out8(HD_CURRENT,(((LBA >> 24) & 0xff) + 0xe0));			/**LBA地址27~24 + LBA模式，主硬盘*/
-	io_out8(HD_STATUS,HD_CMD_READ);								/**读扇区*/
-	/**循环从DATA端口读取数据*/
-	for (i = 0; i != number; i ++)
-	{
-		hdd_wait();
-		for (offset = 0; offset < 256; offset ++)
-		{
-			buffer[(i * 256) + offset] = io_in16(HD_DATA);		/**从DATA端口中读取数据*/
-		}
-	}
-	
-	return;
-}
-
 /**IDE控制器读扇区*/
 int IDE_read(unsigned long storage_number, void *dest, unsigned long LBA_addr, unsigned long n)
 {
-	read_disk(LBA_addr, dest, n);
-	return 0;
-	
-	short int *buffer = (short int *)dest;
+	unsigned short int *buffer = (unsigned short int *)dest;
 	/**进行IDE通道判断*/
 	if ((storage_number == SD_IDE_00) | (storage_number == SD_IDE_01))
 	{
@@ -314,14 +260,13 @@ int IDE_read(unsigned long storage_number, void *dest, unsigned long LBA_addr, u
 			
 			/**等到IDE第一通道不忙时*/
 			IDE_wait();
-			printk("FFF4.3\n");
 			/**读取数据*/
 			unsigned long r;
 			for (r = 0; r < (512 / sizeof(short int)); r ++)
 			{
 				buffer[r] = io_in16(IDE_PRIMARY_READ_DATA);
+				
 			}
-			printk("FFF3.2\n");
 		}
 	}else if ((storage_number == SD_IDE_10) | (storage_number == SD_IDE_11))
 	{
@@ -348,7 +293,7 @@ void init_IDE(void)
 	SD[SD_IDE_11].Description = IDE_Description;
 	
 	/**检测主通道主磁盘状态*/
-	/*io_out8(IDE_PRIMARY_WRITE_LBA_D_24_27, IDE_DRIVE_MASTER);
+	io_out8(IDE_PRIMARY_WRITE_LBA_D_24_27, IDE_DRIVE_MASTER);
 	io_out8(IDE_PRIMARY_WRITE_FEATURES, 0);
 	io_out8(IDE_PRIMARY_WRITE_SECCOUNT, 0);
 	io_out8(IDE_PRIMARY_WRITE_LBA_0_7, 0);
@@ -356,12 +301,15 @@ void init_IDE(void)
 	io_out8(IDE_PRIMARY_WRITE_LBA_16_23, 0);
 	io_out8(IDE_PRIMARY_WRITE_CMD, IDE_CMD_IDENTIFY);
 	if (io_in8(IDE_PRIMARY_READ_STATUS) != 0)
-	{*/
+	{
 		// 存在磁盘
 				
 		/**在储存器描述符表部分注册*/
 		SD[SD_IDE_00].exist = true;
 		
+		// The first read is a sector of 512 Bytes unknown information
+		IDE_read(SD_IDE_00, MBR, 0, 1);
+
 		IDE_read(SD_IDE_00, MBR, 0, 1);
 		
 		SD[SD_IDE_00].SP[0] = MBR->SP[0];
@@ -370,18 +318,18 @@ void init_IDE(void)
 		SD[SD_IDE_00].SP[3] = MBR->SP[3];
 		
 		printak("<%#X>IDE Controller:</>Found Primary Master.\n", DeepPink);
-	// }
+	}
 	
 	/**检测主通道从磁盘状态*/
-	// io_out8(IDE_PRIMARY_WRITE_LBA_D_24_27, IDE_DRIVE_SLAVE);
-	// io_out8(IDE_PRIMARY_WRITE_FEATURES, 0);
-	// io_out8(IDE_PRIMARY_WRITE_SECCOUNT, 0);
-	// io_out8(IDE_PRIMARY_WRITE_LBA_0_7, 0);
-	// io_out8(IDE_PRIMARY_WRITE_LBA_8_15, 0);
-	// io_out8(IDE_PRIMARY_WRITE_LBA_16_23, 0);
-	// io_out8(IDE_PRIMARY_WRITE_CMD, IDE_CMD_IDENTIFY);
-	// if (io_in8(IDE_PRIMARY_READ_STATUS) != 0)
-	// {
+	io_out8(IDE_PRIMARY_WRITE_LBA_D_24_27, IDE_DRIVE_SLAVE);
+	io_out8(IDE_PRIMARY_WRITE_FEATURES, 0);
+	io_out8(IDE_PRIMARY_WRITE_SECCOUNT, 0);
+	io_out8(IDE_PRIMARY_WRITE_LBA_0_7, 0);
+	io_out8(IDE_PRIMARY_WRITE_LBA_8_15, 0);
+	io_out8(IDE_PRIMARY_WRITE_LBA_16_23, 0);
+	io_out8(IDE_PRIMARY_WRITE_CMD, IDE_CMD_IDENTIFY);
+	if (io_in8(IDE_PRIMARY_READ_STATUS) != 0)
+	{
 		// 存在磁盘
 		
 		
@@ -396,7 +344,7 @@ void init_IDE(void)
 		SD[SD_IDE_01].SP[3] = MBR->SP[3];
 		
 		printak("<%#X>IDE Controller:</>Found Primary Slave.\n", DeepPink);
-	// }
+	}
 
 	/**输出信息*/
 	printk("IDE Controller finished.\n");
@@ -471,7 +419,7 @@ unsigned int init_storage(void)
 		if (SD[n].exist == true)
 		{
 			/**打印储存器描述信息*/
-			printak("    <%#X>%s(%d)</>\n", Snow2, SD[n].Description, n);
+			printak("    <%#X>(Storage Descriptor %d)%s</>\n", Snow2, n, SD[n].Description);
 			
 			/**打印储存器的分区信息*/
 			for (r = 0; r < 4; r ++)
@@ -485,11 +433,11 @@ unsigned int init_storage(void)
 					printak("<%#X>Inactive.</>", Snow3);
 				}
 				/**分区位置信息*/
-				printak("<%#X>File System:%#X,Start(LBA):%d,Length(Sector):%d.\n</>", Snow3, SD[n].SP[r].fs, SD[n].SP[r].start_LBA, SD[n].SP[r].size_sector);
+				printak("<%#X>File System:%#X,Start(LBA):%d,Length:%dMiB.\n</>", Snow3, SD[n].SP[r].fs, SD[n].SP[r].start_LBA, SD[n].SP[r].size_sector * 512 / 1048576);
 			}
 		}else{
 			/**打印储存器描述信息*/
-			printak("    <%#X>%s(%d, Unmounted)</>\n", Snow4, SD[n].Description, n);
+			printak("    <%#X>(Storage Descriptor %d)%s: Unmounted</>\n", Snow4, n, SD[n].Description);
 		}
 		
 	}

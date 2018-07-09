@@ -237,3 +237,22 @@ unsigned long strspn(const char *s, const char *accept)
 	}
 	return count;
 }
+
+char *strnstr(const char *big, const char *little, unsigned long len)
+{
+	const char *p;
+
+	unsigned long count;
+	
+	for (p = big; *p != '\0', len --; p ++)
+		for (count = 0; ; count ++)
+		{
+			if (little[count] == '\0')
+				return p;
+			if (p[count] != little[count])
+				break;
+		}
+
+	return big;
+}
+

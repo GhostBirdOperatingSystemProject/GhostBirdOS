@@ -1,9 +1,9 @@
 /**
  * Copyright 2013-2015 by Explorer Developers.
  * made by Hu Wenjie<1@hwj.me>
- * made by Rise<amazingrise@163.com>
- * Explorer load Visual Interface
- * boot/shell.c
+ * made by Rize<heseri@ghostbirdos.org>
+ * Explorer Loader Visual Interface
+ * /loader/boot/shell.c
  * version:4.0.0
  * 7/5/2014 7:08 PM
  */
@@ -14,14 +14,14 @@
 #include "lib/string.h"
 #include "lib/mem.h"
 #include "lib/font.h"
-#include "head.h"
+#include "lib/graphics.h"
 #include "../configure.h"
 #include "VI.h"
 
 /**各种定义集合*/
 
 /**printk缓存大小*/
-#define		BUFFER_SIZE 256
+#define		BUFFER_SIZE 4096
 
 /**输出页的光标*/
 unsigned long output_cursor_x, output_cursor_y;
@@ -181,6 +181,11 @@ void put_char(char ascii)
 	/**对控制字符的判断*/
 	if (ascii < 0x20)
 	{
+		if(ascii == 0xD)
+		{
+			output_cursor_x = 0;
+		}
+
 		/**如果输入字符是换行符，则进行换行*/
 		if(ascii == 0xA)
 		{
@@ -722,6 +727,7 @@ void init_VI(void)
 	select_active = 0xffffffff;
 	
 	/**选择默认页*/
+	VI_current_page = VI_page_init;
 	VI_active(VI_page_output);
 	
 	/**默认颜色设置*/
